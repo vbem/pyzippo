@@ -14,29 +14,10 @@ import itertools
 import functools
 import logging
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# internal attributes
 _LOGGER = logging.getLogger(__name__)
 _LOGGER.addHandler(logging.NullHandler())
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# external attributes
 
-# valid logging levels
-LOG_LEVELS = (logging.DEBUG, logging.INFO, logging.WARNING, logging.ERROR, logging.FATAL)
-
-# demo logging format string
-# usage: `your_formatter = logging.Formatter(fmt=this_module.LOG_FMT)`
-LOG_FMT = '[%(asctime)s %(levelname)s %(name)s %(module)s,%(funcName)s,%(lineno)d] %(message)s'
-
-# demo logging formater
-# usage: `your_handler.setFormatter(this_module.LOG_FORMATTER)`
-LOG_FORMATTER = logging.Formatter(LOG_FMT)
-
-# demo logging handler to stderr
-# usage: `your_logger.addHandler(this_module.LOG_HANDLER_STDERR)`
-LOG_HANDLER_STDERR = logging.StreamHandler()
-LOG_HANDLER_STDERR.setFormatter(LOG_FORMATTER)
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 def colorize(sText, nFore=None, nBack=None, nAttr=None):
     r"""Colorize text.
     forecolors:  grey_30, red_31, green_32, yellow_33, blue_34, magenta_35, cyan_36, white_37.
@@ -53,6 +34,27 @@ def colorize(sText, nFore=None, nBack=None, nAttr=None):
         sFmt = ';'.join((str(nValue) for nValue in (nFore, nBack, nAttr) if nValue is not None))
         return '{sFmtHead}{sFmt}{sFmtTail}{sText}{sFmtHead}{sFmtTail}'.format(**locals())
     return sText
+
+# demo logging format string
+# usage: `your_formatter = logging.Formatter(fmt=this_module.LOG_FMT)`
+LOG_FMT_WHITE = '[%(asctime)s %(levelname)s %(name)s %(module)s:%(funcName)s:%(lineno)d] %(message)s'
+LOG_FMT_COLOR = '{}{}{}{}{}{} %(message)s'.format(
+    colorize('%(asctime)s', None, 42),
+    colorize('%(levelname)s', None, 41),
+    colorize('%(name)s', None, 43),
+    colorize('%(module)s', None, 44),
+    colorize('%(funcName)s', None, 45),
+    colorize('%(lineno)s', None, 46),
+)
+
+# demo logging formater
+# usage: `your_handler.setFormatter(this_module.LOG_FORMATTER)`
+LOG_FORMATTER = logging.Formatter(LOG_FMT_WHITE)
+
+# demo logging handler to stderr
+# usage: `your_logger.addHandler(this_module.LOG_HANDLER_STDERR)`
+LOG_HANDLER_STDERR = logging.StreamHandler()
+LOG_HANDLER_STDERR.setFormatter(LOG_FORMATTER)
 
 def getPretty(*t, **d):
     r"""Return "pretty-print" string for an object using `pprint.pformat()`.
@@ -77,21 +79,22 @@ def getFuncFullName(func):
         raise TypeError('{func!r} is not callable'.format(**locals()))
     return '{}.{}'.format(func.__module__, func.__qualname__)
 
-def atLog(logger=_LOGGER, nLevel=logging.DEBUG):
-    r'''A decorator wraps longging on function calls with given logger, level .
+def logCall(logger=_LOGGER, nLevel=logging.DEBUG):
+    r'''A decorator wraps longging on function call's begin and end with given logger and level .
     '''
     if not isinstance(logger, logging.Logger):
         raise TypeError('{logger!r} is not a logging.Logger instance'.format(**locals()))
-    if not isinstance(nLevel, int) or nLevel not in LOG_LEVELS:
+    if not isinstance(nLevel, int) or nLevel not in logging._levelToName:
         raise ValueError('{nLevel!r} is not a valid logging level'.format(**locals()))
     def decorator(func):
-        sFuncFullName = getFuncFullName(func)
+        sFunc = getFuncFullName(func)
         @functools.wraps(func)
         def wrapper(*t, **d):
-            sReprArgs = reprArgs(*t, **d)
-            logger.log(nLevel, '%s <= %s', sFuncFullName, sReprArgs)
+            nonlocal sFunc
+            sArgs = reprArgs(*t, **d)
+            logger.log(nLevel, '%(sFunc)s <= %(sArgs)s', locals())
             result = func(*t, **d)
-            logger.log(nLevel, '%s => %r', sFuncFullName, result)
+            logger.log(nLevel, '%(sFunc)s => %(result)r', locals())
             return result
         return wrapper
     return decorator
