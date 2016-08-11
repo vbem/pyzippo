@@ -14,7 +14,7 @@ def _assertIsNumerial(**d):
     '''
     for k, v in d.items():
         if not isinstance(v, (int, float)):
-            raise TypeError('{}={!r} is neither `int` nor `float`'.format(k, v))
+            raise TypeError('{k}={v!r} is neither `int` nor `float`'.format_map(locals()))
 
 def approximate(nA, nB, nDelta=1e-7):
     r'''Check if number `nA` and `nB` are approximately equal with given delta.

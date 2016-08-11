@@ -25,14 +25,14 @@ def colorize(sText, nFore=None, nBack=None, nAttr=None):
     attributes:  bold_1, dark_2, underline_4, blink_5, reverse_7, concealed_8.
     """
     if not isinstance(sText, str):
-        raise TypeError('{sText!r} is not str type'.format(**locals()))
+        raise TypeError('{sText!r} is not str type'.format_map(locals()))
     for nValue in (nFore, nBack, nAttr):
         if not (nValue is None or isinstance(nValue, int)):
-            raise TypeError('argument value {nValue!r} is not valid'.format(**locals()))
+            raise TypeError('argument value {nValue!r} is not valid'.format_map(locals()))
     if os.getenv('ANSI_COLORS_DISABLED') is None and any((nFore, nBack, nAttr)):
         sFmtHead, sFmtTail = '\033[', 'm'
         sFmt = ';'.join((str(nValue) for nValue in (nFore, nBack, nAttr) if nValue is not None))
-        return '{sFmtHead}{sFmt}{sFmtTail}{sText}{sFmtHead}{sFmtTail}'.format(**locals())
+        return '{sFmtHead}{sFmt}{sFmtTail}{sText}{sFmtHead}{sFmtTail}'.format_map(locals())
     return sText
 
 # demo logging format string
@@ -76,16 +76,16 @@ def getFuncFullName(func):
     r'''Return `package-name.module-name.class-name.method-name` like qualified name of given function object.
     '''
     if not callable(func):
-        raise TypeError('{func!r} is not callable'.format(**locals()))
+        raise TypeError('{func!r} is not callable'.format_map(locals()))
     return '{}.{}'.format(func.__module__, func.__qualname__)
 
-def logCall(logger=_LOGGER, nLevel=logging.DEBUG):
+def decorateLog(logger=_LOGGER, nLevel=logging.DEBUG):
     r'''A decorator wraps longging on function call's begin and end with given logger and level .
     '''
     if not isinstance(logger, logging.Logger):
-        raise TypeError('{logger!r} is not a logging.Logger instance'.format(**locals()))
+        raise TypeError('{logger!r} is not a logging.Logger instance'.format_map(locals()))
     if not isinstance(nLevel, int) or nLevel not in logging._levelToName:
-        raise ValueError('{nLevel!r} is not a valid logging level'.format(**locals()))
+        raise ValueError('{nLevel!r} is not a valid logging level'.format_map(locals()))
     def decorator(func):
         sFunc = getFuncFullName(func)
         @functools.wraps(func)
@@ -98,3 +98,4 @@ def logCall(logger=_LOGGER, nLevel=logging.DEBUG):
             return result
         return wrapper
     return decorator
+    
