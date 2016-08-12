@@ -14,6 +14,7 @@ import functools
 import contextlib
 import inspect
 import logging
+import weakref
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 _LOGGER = logging.getLogger(__name__)
 _LOGGER.addHandler(logging.NullHandler())
@@ -57,6 +58,21 @@ LOG_FORMATTER = logging.Formatter(LOG_FMT_WHITE)
 LOG_HANDLER_STDERR = logging.StreamHandler()
 LOG_HANDLER_STDERR.setFormatter(LOG_FORMATTER)
 
+def reprArgs(*t, **d):
+    r'''Return arguments' representation string as in scrpit's function invocation.
+    '''
+    return '({})'.format(', '.join(itertools.chain( # chain generators, then join with comma, finally enclosed
+        (repr(arg) for arg in t),   # Generator of positional arguments
+        ('{}={!r}'.format(*tKv) for tKv in d.items()), # Generator of keyword arguments
+    )))
+
+def getFuncFullName(func):
+    r'''Return `package-name.module-name.class-name.method-name` like qualified name of given function object.
+    '''
+    if not callable(func):
+        raise TypeError('{func!r} is not callable'.format_map(locals()))
+    return '{}.{}'.format(func.__module__, func.__qualname__)
+
 def decorateLog(logger=None, nLevel=logging.DEBUG):
     r'''A decorator wraps longging on function call's begin and end with given logger and level.
     '''
@@ -68,16 +84,13 @@ def decorateLog(logger=None, nLevel=logging.DEBUG):
         raise ValueError('{nLevel!r} is not a valid logging level'.format_map(locals()))
 
     def decorator(func):
-        sFunc = '{}.{}'.format(func.__module__, func.__qualname__) # `package-name.module-name.class-name.method-name`
+        sFunc = getFuncFullName(func)
 
         @functools.wraps(func)
         def wrapper(*t, **d):
             nonlocal sFunc
-            sArgs = '({})'.format(', '.join(itertools.chain( # chain generators, then join with comma, finally enclosed
-                (repr(arg) for arg in t),   # Generator of positional arguments
-                ('{}={!r}'.format(*tKv) for tKv in d.items()), # Generator of keyword arguments
-            ))) #  arguments' representation string as in scrpit's function invocation
-            logger.log(nLevel, '%(sFunc)s <= %(sArgs)s', locals())
+            sReprArgs = reprArgs(*t, **d)
+            logger.log(nLevel, '%(sFunc)s <= %(sReprArgs)s', locals())
             try:
                 result = func(*t, **d)
             except BaseException as e:
@@ -117,4 +130,39 @@ def contextLog(logger=None, nLevel=logging.DEBUG, sName=None):
         raise
     else:
         logger.log(nLevel, 'block %(sName)r finished', locals())
+
+class DescriptorLog:
+    r'''A descriptor with logging on its access.
+    '''
+    def __init__(self, logger=None, nLevel=logging.DEBUG, sName=None, default=None):
+        r'''Initialize with given name and default value.
+        '''
+        if logger is None:
+            logger = _LOGGER
+        if not isinstance(logger, logging.Logger):
+            raise TypeError('{logger!r} is not a logging.Logger instance'.format_map(locals()))
+        if not isinstance(nLevel, int) or nLevel not in logging._levelToName:
+            raise ValueError('{nLevel!r} is not a valid logging level'.format_map(locals()))
+        if not isinstance(sName, str):
+            raise TypeError('{sName!r} is not a str'.format_map(locals()))
+
+        self._logger = logger
+        self._nLevel = nLevel
+        self._sName = sName
+        self._default = default
+        self._dict = weakref.WeakKeyDictionary()
+        self._logger.log(self._nLevel, 'descriptor %r created', self._sName)
+
+    def __get__(self, obj, typeObj=None):
+        value = self._dict.get(obj, self._default)
+        self._logger.log(self._nLevel, 'descriptor %r => %r', self._sName, value)
+        return value
+
+    def __set__(self, obj, value):
+        self._dict[obj] = value
+        self._logger.log(self._nLevel, 'descriptor %r <= %r', self._sName, value)
+
+    def __delete__(self, obj):
+        del self._dict[obj]
+        self._logger.log(self._nLevel, 'descriptor %r deleted', self._sName)
 
