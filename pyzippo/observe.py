@@ -9,9 +9,10 @@ __version__ = (0, 1, 0, 'alpha', 0)
 __author__  = 'vbem <i@lilei.tech>'
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 import os
-import pprint
 import itertools
 import functools
+import contextlib
+import inspect
 import logging
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 _LOGGER = logging.getLogger(__name__)
@@ -56,14 +57,6 @@ LOG_FORMATTER = logging.Formatter(LOG_FMT_WHITE)
 LOG_HANDLER_STDERR = logging.StreamHandler()
 LOG_HANDLER_STDERR.setFormatter(LOG_FORMATTER)
 
-def getPretty(*t, **d):
-    r"""Return "pretty-print" string for an object using `pprint.pformat()`.
-    Default `indent` is 4.
-    """
-    if 'indent' not in d and len(t) < 2:
-        d['indent'] = 4
-    return pprint.pformat(*t, **d)
-
 def reprArgs(*t, **d):
     r'''Return arguments' representation string as in scrpit's function invocation.
     '''
@@ -80,7 +73,7 @@ def getFuncFullName(func):
     return '{}.{}'.format(func.__module__, func.__qualname__)
 
 def decorateLog(logger=_LOGGER, nLevel=logging.DEBUG):
-    r'''A decorator wraps longging on function call's begin and end with given logger and level .
+    r'''A decorator wraps longging on function call's begin and end with given logger and level.
     '''
     if not isinstance(logger, logging.Logger):
         raise TypeError('{logger!r} is not a logging.Logger instance'.format_map(locals()))
@@ -93,9 +86,39 @@ def decorateLog(logger=_LOGGER, nLevel=logging.DEBUG):
             nonlocal sFunc
             sArgs = reprArgs(*t, **d)
             logger.log(nLevel, '%(sFunc)s <= %(sArgs)s', locals())
-            result = func(*t, **d)
-            logger.log(nLevel, '%(sFunc)s => %(result)r', locals())
-            return result
+            try:
+                result = func(*t, **d)
+            except BaseException as e:
+                logger.log(nLevel, '%(sFunc)s raises %(e)r', locals())
+                raise
+            else:
+                logger.log(nLevel, '%(sFunc)s => %(result)r', locals())
+                return result
         return wrapper
     return decorator
     
+@contextlib.contextmanager
+def contextLog(logger=_LOGGER, nLevel=logging.DEBUG, sName=None):
+    r'''A context manager supports longging on code block begin and end with given logger, level and block name.
+    '''
+    if not isinstance(logger, logging.Logger):
+        raise TypeError('{logger!r} is not a logging.Logger instance'.format_map(locals()))
+    if not isinstance(nLevel, int) or nLevel not in logging._levelToName:
+        raise ValueError('{nLevel!r} is not a valid logging level'.format_map(locals()))
+    if sName is None:
+        frameCaller = inspect.stack()[2][0] # frame of caller stack
+        sCallerModuleName = frameCaller.f_locals['__name__']
+        sCallerLineNo = frameCaller.f_lineno
+        sName = '{sCallerModuleName}:{sCallerLineNo}'.format_map(locals())
+    if not isinstance(sName, str):
+        raise TypeError('{sName!r} is not a str'.format_map(locals()))
+    
+    logger.log(nLevel, 'block %(sName)r starts', locals())
+    try:
+        yield
+    except BaseException as e:
+        logger.log(nLevel, 'block %(sName)r raises: %(e)r', locals())
+        raise
+    else:
+        logger.log(nLevel, 'block %(sName)r finished', locals())
+
