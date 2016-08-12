@@ -57,34 +57,26 @@ LOG_FORMATTER = logging.Formatter(LOG_FMT_WHITE)
 LOG_HANDLER_STDERR = logging.StreamHandler()
 LOG_HANDLER_STDERR.setFormatter(LOG_FORMATTER)
 
-def reprArgs(*t, **d):
-    r'''Return arguments' representation string as in scrpit's function invocation.
-    '''
-    return '({})'.format(', '.join(itertools.chain( # chain generators, then join with comma, finally enclosed
-        (repr(arg) for arg in t),   # Generator of positional arguments
-        ('{}={!r}'.format(*tKv) for tKv in d.items()), # Generator of keyword arguments
-    )))
-
-def getFuncFullName(func):
-    r'''Return `package-name.module-name.class-name.method-name` like qualified name of given function object.
-    '''
-    if not callable(func):
-        raise TypeError('{func!r} is not callable'.format_map(locals()))
-    return '{}.{}'.format(func.__module__, func.__qualname__)
-
-def decorateLog(logger=_LOGGER, nLevel=logging.DEBUG):
+def decorateLog(logger=None, nLevel=logging.DEBUG):
     r'''A decorator wraps longging on function call's begin and end with given logger and level.
     '''
+    if logger is None:
+        logger = _LOGGER
     if not isinstance(logger, logging.Logger):
         raise TypeError('{logger!r} is not a logging.Logger instance'.format_map(locals()))
     if not isinstance(nLevel, int) or nLevel not in logging._levelToName:
         raise ValueError('{nLevel!r} is not a valid logging level'.format_map(locals()))
+
     def decorator(func):
-        sFunc = getFuncFullName(func)
+        sFunc = '{}.{}'.format(func.__module__, func.__qualname__) # `package-name.module-name.class-name.method-name`
+
         @functools.wraps(func)
         def wrapper(*t, **d):
             nonlocal sFunc
-            sArgs = reprArgs(*t, **d)
+            sArgs = '({})'.format(', '.join(itertools.chain( # chain generators, then join with comma, finally enclosed
+                (repr(arg) for arg in t),   # Generator of positional arguments
+                ('{}={!r}'.format(*tKv) for tKv in d.items()), # Generator of keyword arguments
+            ))) #  arguments' representation string as in scrpit's function invocation
             logger.log(nLevel, '%(sFunc)s <= %(sArgs)s', locals())
             try:
                 result = func(*t, **d)
@@ -94,13 +86,17 @@ def decorateLog(logger=_LOGGER, nLevel=logging.DEBUG):
             else:
                 logger.log(nLevel, '%(sFunc)s => %(result)r', locals())
                 return result
+
         return wrapper
+
     return decorator
-    
+
 @contextlib.contextmanager
-def contextLog(logger=_LOGGER, nLevel=logging.DEBUG, sName=None):
+def contextLog(logger=None, nLevel=logging.DEBUG, sName=None):
     r'''A context manager supports longging on code block begin and end with given logger, level and block name.
     '''
+    if logger is None:
+        logger = _LOGGER
     if not isinstance(logger, logging.Logger):
         raise TypeError('{logger!r} is not a logging.Logger instance'.format_map(locals()))
     if not isinstance(nLevel, int) or nLevel not in logging._levelToName:
@@ -112,10 +108,10 @@ def contextLog(logger=_LOGGER, nLevel=logging.DEBUG, sName=None):
         sName = '{sCallerModuleName}:{sCallerLineNo}'.format_map(locals())
     if not isinstance(sName, str):
         raise TypeError('{sName!r} is not a str'.format_map(locals()))
-    
+
     logger.log(nLevel, 'block %(sName)r starts', locals())
     try:
-        yield
+        yield sName
     except BaseException as e:
         logger.log(nLevel, 'block %(sName)r raises: %(e)r', locals())
         raise
