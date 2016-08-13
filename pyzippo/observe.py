@@ -15,6 +15,7 @@ import contextlib
 import inspect
 import logging
 import weakref
+import collections
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 _LOGGER = logging.getLogger(__name__)
 _LOGGER.addHandler(logging.NullHandler())
@@ -36,6 +37,9 @@ def colorize(sText, nFore=None, nBack=None, nAttr=None):
         sFmt = ';'.join((str(nValue) for nValue in (nFore, nBack, nAttr) if nValue is not None))
         return '{sFmtHead}{sFmt}{sFmtTail}{sText}{sFmtHead}{sFmtTail}'.format_map(locals())
     return sText
+
+# logging levels name-to-level ordered mapping
+LOG_LEVELS = collections.OrderedDict((logging._levelToName[nLevel] ,nLevel) for nLevel in range(10,51,10))
 
 # demo logging format string
 # usage: `your_formatter = logging.Formatter(fmt=this_module.LOG_FMT)`
