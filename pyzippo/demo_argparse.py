@@ -11,30 +11,31 @@ __author__  = 'vbem <i@lilei.tech>'
 import os
 import sys
 import argparse
-import textwrap
 import logging
-import observe
+
+import journal
+import text
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-_LOG = logging.getLogger(__name__)
-_LOG.addHandler(observe.LOG_HANDLER_STDERR)
+LOG = logging.getLogger(__name__)
+LOG.addHandler(logging.NullHandler()) # as lib
+LOG.addHandler(journal.LOG_HANDLER_COLOR) # as app
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # CLI functions
 
 def runCli(lCliArgs=None):
     r'''Run CLI.
     '''
-    dedent = lambda s: textwrap.dedent(s).strip()
     dCommonParserInitArgs = {
         'formatter_class' : argparse.RawTextHelpFormatter,
         'epilog' : 'I/O: stdin->input, stdout->result, stderr->logging, exit code->status check',
     }
 
-    s = __doc__.strip()
+    s = text.shrink(__doc__)
     parserMain = argparse.ArgumentParser(description=s, **dCommonParserInitArgs)
     groupMutex = parserMain.add_mutually_exclusive_group()
     s = 'disable all logging messages'
     groupMutex.add_argument('-q', '--quite', action='store_true', help=s)
-    s = dedent(r"""
+    s = text.shrink(r"""
         increase logging verbosity
         without this, log at `warning` level
         with `-v`, log at `info` level
@@ -47,7 +48,7 @@ def runCli(lCliArgs=None):
 
     s = 'demo sub-command with sub-arguments'
     parserDemo = actionSub.add_parser(name='demo', description=s, help=s, **dCommonParserInitArgs)
-    s = dedent(r"""
+    s = text.shrink(r"""
         an optional single item
         type: %(type)s; choices: %(choices)s; default: %(const)s
     """)
@@ -63,14 +64,14 @@ def runCli(lCliArgs=None):
     namespace = parserMain.parse_args(args=lCliArgs)
 
     if namespace.quite:
-        _LOG.setLevel(51)
+        LOG.setLevel(51)
     else:
-        _LOG.setLevel(logging.WARNING if namespace.verbose==0 else logging.INFO if namespace.verbose==1 else logging.DEBUG)
+        LOG.setLevel(logging.WARNING if namespace.verbose==0 else logging.INFO if namespace.verbose==1 else logging.DEBUG)
 
-    _LOG.debug(namespace)
+    LOG.debug(namespace)
 
     if not namespace.subcommand:
-        _LOG.warning('no sub-command specified, show help instead')
+        LOG.warning('no sub-command specified, show help instead')
         parserMain.print_help()
         return 1
 
@@ -89,7 +90,7 @@ def runCli(lCliArgs=None):
             print('`demo` receive `--opt-list` with {namespace.opt_list!r}'.format_map(locals()))
             return 0
 
-        _LOG.warning('no valid argument for this sub-command specified, show help instead')
+        LOG.warning('no valid argument for this sub-command specified, show help instead')
         parserDemo.print_help()
         return 1
     
@@ -98,5 +99,5 @@ def runCli(lCliArgs=None):
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 if __name__ == "__main__":
     nRet = runCli()
-    _LOG.info('terminates with status code: {nRet}'.format_map(locals()))
+    LOG.info('terminates with status code: {nRet}'.format_map(locals()))
     sys.exit(nRet)
