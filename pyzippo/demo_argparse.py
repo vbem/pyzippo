@@ -93,7 +93,7 @@ def runCli(lCliArgs=None):
         LOG.warning('no valid argument for this sub-command specified, show help instead')
         parserDemo.print_help()
         return 1
-    
+
     return 255
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
