@@ -9,65 +9,10 @@ __version__ = (0, 1, 0, 'alpha', 0)
 __author__  = 'vbem <i@lilei.tech>'
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 import os
-import re
 import enum
 import itertools
 import textwrap
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-# https://tools.ietf.org/html/rfc1808.html
-PATTERN_URL = re.compile(r'''^
-    (
-        (?P<scheme> [a-z]+)
-        ://
-    )?
-    (?P<netloc>
-        (
-            (?P<username> [^/:@]+)
-            (
-                :
-                (?P<password> [^/:@]+)
-                
-            )?
-            @
-        )?
-        (?P<hostname>
-            (?P<domain> ((?!-)[a-z0-9-]+(?!-)\.)+ [a-z]{2,} )
-            |
-            (?P<ip> [0-9]{1,3} (\.[0-9]){1,3})
-        )
-        (
-            :
-            (?P<port> [0-9]{1,5})
-        )?
-    ) 
-    (?P<relpath>
-        (?P<path>/[^;?#]*)
-        (
-            ;
-            (?P<params>[^?#]*)
-        )?
-        (
-            \?
-            (?P<query>[^#]*)
-        )?
-    )?
-    (
-        \#
-        (?P<fragment>.*)
-    )?
-$''', re.VERBOSE | re.IGNORECASE)
-
-# https://www.ietf.org/rfc/rfc5322.txt
-PATTERN_EMAIL = re.compile(r'''^
-    (?P<username>[a-zA-Z0-9_.+-]+)
-    @
-    (?P<hostname>
-        (?P<domain> ((?!-)[a-z0-9-]+(?!-)\.)+ [a-z]{2,} )
-        |
-        (?P<ip> [0-9]{1,3} (\.[0-9]){1,3})
-    )
-$''', re.VERBOSE | re.IGNORECASE)
 
 @enum.unique
 class Color(enum.IntEnum):
