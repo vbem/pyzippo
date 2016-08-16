@@ -9,10 +9,64 @@ __version__ = (0, 1, 0, 'alpha', 0)
 __author__  = 'vbem <i@lilei.tech>'
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 import os
+import re
 import enum
 import itertools
 import textwrap
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# https://tools.ietf.org/html/rfc1808.html
+PATTERN_URL = re.compile(r'''(^
+    (
+        (?P<scheme> [a-z]+)
+        ://
+    )?
+    (?P<netloc>
+        (
+            (?P<username> [^/:@]+)
+            (
+                :
+                (?P<password> [^/:@]+)
+                
+            )?
+            @
+        )?
+        (?P<hostname>
+            (?P<domain> ((?!-)[a-z0-9-]+(?!-)\.)+ [a-z]{2,} )
+            |
+            (?P<ip> [0-9]{1,3} (\.[0-9]){1,3})
+        )
+        (
+            :
+            (?P<port> [0-9]{1,5})
+        )?
+    ) 
+    (?P<relpath>
+        (?P<path>/[^;?#]*)
+        (
+            ;
+            (?P<params>[^?#]*)
+        )?
+        (
+            \?
+            (?P<query>[^#]*)
+        )?
+    )?
+    (
+        \#
+        (?P<fragment>.*)
+    )?
+$)''', re.VERBOSE | re.IGNORECASE)
+
+for s in (
+    'http://a:b@www.cn:8080/x/y/z.html;para?queries#anchor',
+    'http://a@www.cn:8080/x/y/z.html#anchor',
+    '-http://a:b@www.cn:8080/x/y/z.html;para?queries#anchor',
+    'http://a:b@1.2.3.4/;para?queries#anchor',
+):
+    m = PATTERN_URL.match(s)
+    print('\n',s) 
+    print(m.groupdict() if m else m)
 
 @enum.unique
 class Color(enum.IntEnum):
