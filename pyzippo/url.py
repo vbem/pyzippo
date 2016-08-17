@@ -96,7 +96,7 @@ def encodeNetloc(sHostname, nPort=None, sUsername=None, sPassword=None):
 
 # tuple(scheme, netloc, path, params, query, fragment ) <-> URL string
 decodeUrl = urllib.parse.urlparse
-encodeUrl = urllib.parse.urlunparse
+encodeUrl = urllib.parse.urlunparse # or use: urllib.parse.ParseResult(scheme, netloc, path, params, query, fragment)
 
 # base URL + relative URL -> absolute URL
 joinBaseRel = urllib.parse.urljoin
