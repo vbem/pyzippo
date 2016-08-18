@@ -27,7 +27,7 @@ LOG_FMT_COLOR = '{}{}{}{}{}{} {}'.format(
     text.Color.render('%(module)s',     text.Color.B_BLUE),
     text.Color.render('%(funcName)s',   text.Color.B_MAGENTA),
     text.Color.render('%(lineno)s',     text.Color.B_CYAN),
-    text.Color.render('%(message)s',    text.Color.F_GREEN),
+    text.Color.render('%(message)s',    text.Color.A_BOLD),
 )
 
 # demo logging handler to stderr
