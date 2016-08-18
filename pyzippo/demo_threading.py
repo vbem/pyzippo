@@ -78,8 +78,6 @@ class Crawler:
         r"""
         """
         for tUrl in enumerate(self._iterUrls):
-            import time
-            time.sleep(0.1)
             self._qUrls.put(tUrl) # may block
             LOG.debug('{} put {}'.format(threading.current_thread().name, tUrl))
         # terminate this thread
