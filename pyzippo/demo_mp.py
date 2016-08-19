@@ -43,8 +43,8 @@ if __name__ == "__main__":
     LOG_MP.info('%r come in main', mp.current_process().name)
     iterArgs = ((n+1, 'http://lilei.tech/', None) for n in range(20))
         
-    with mp.Pool(processes=os.cpu_count()*4) as pool:
-        i = pool.imap_unordered(getResponseWraped, iterArgs)
+    with mp.Pool(processes=os.cpu_count()*2) as pool:
+        i = pool.imap_unordered(getResponseWraped, iterArgs, 10)
         for r in i:
             print(r)
         
