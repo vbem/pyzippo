@@ -138,6 +138,6 @@ if __name__ == "__main__":
 
     LOG.setLevel(logging.INFO)
 
-    for nIndex, sUrl, response in yieldResponses(iterUrls=['http://www.liwanshi.com/']*100, nConcurrentCount=10):
+    for nIndex, sUrl, response in yieldResponses(iterUrls=['http://www.lilei.tech']*100, nConcurrentCount=10):
         print(nIndex, sUrl, response)
 
