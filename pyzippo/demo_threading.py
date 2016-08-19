@@ -51,7 +51,6 @@ class ThreadUrls(threading.Thread):
         for tUrl in enumerate(self._iterUrls):
             self._qOutput.put(tUrl) # may block
             LOG.debug('%r put %r', threading.current_thread().name, tUrl)
-        # terminate this thread
         LOG.info('%r terminated', threading.current_thread().name)
 
 class ThreadResponses(threading.Thread):
@@ -68,12 +67,8 @@ class ThreadResponses(threading.Thread):
     def run(self):
         r'''
         '''
-        while True:
-            tUrl = self._qInput.get() # may block
+        for tUrl in iter(self._qInput.get, EOFError): # queue.Queue.get() may block
             LOG.debug('%r get %r', threading.current_thread().name, tUrl)
-            if tUrl is EOFError:
-                LOG.info('%r terminated', threading.current_thread().name)
-                break # terminate this thread
             nIndex, sUrl = tUrl
             try:
                 with urllib.request.urlopen(url=sUrl, timeout=self._nTimeout) as obj:
@@ -82,6 +77,7 @@ class ThreadResponses(threading.Thread):
                 response = e
             self._qOutput.put((nIndex, sUrl, response)) # may block
             LOG.debug('%r put %r', threading.current_thread().name, (nIndex, sUrl, response))
+        LOG.info('%r terminated', threading.current_thread().name)
 
 class ThreadSentinel(threading.Thread):
     r'''Thread sentinel.
@@ -101,14 +97,15 @@ class ThreadSentinel(threading.Thread):
         '''
         self._poolUrls.join_all()
         LOG.info('joined all poolUrls')
+
         for thread in self._poolResponses:
             self._qUrls.put(EOFError)
         LOG.info('told all poolResponses to terminate')
         self._poolResponses.join_all()
         LOG.info('joined all poolResponses')
+
         self._qResponses.put(EOFError)
         LOG.info('told main thread to terminate')
-        # terminate this thread
         LOG.info('%r terminated', threading.current_thread().name)
         
 def yieldResponses(iterUrls, nConcurrentCount, nTimeout=None):
@@ -127,14 +124,11 @@ def yieldResponses(iterUrls, nConcurrentCount, nTimeout=None):
     threadSentinel.start()
 
     # main thread
-    while True:
-        tResponse = qResponses.get()
+    for tResponse in iter(qResponses.get, EOFError): # queue.Queue.get() may block
         LOG.debug('main thread get %r', tResponse)
-        if tResponse is EOFError:
-            threadSentinel.join()
-            LOG.info('joined sentinel')
-            break # terminate this thread
         yield tResponse
+    threadSentinel.join()
+    LOG.info('joined sentinel')
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 if __name__ == "__main__":
@@ -144,6 +138,6 @@ if __name__ == "__main__":
 
     LOG.setLevel(logging.INFO)
 
-    for nIndex, sUrl, response in yieldResponses(iterUrls=['http://www.liwanshi.com/']*1000, nConcurrentCount=100):
+    for nIndex, sUrl, response in yieldResponses(iterUrls=['http://www.liwanshi.com/']*100, nConcurrentCount=10):
         print(nIndex, sUrl, response)
 
